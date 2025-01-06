@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/and/work/test_ws/src/SC-LIO-SAM/cmake-build-debug/devel/setup.sh
