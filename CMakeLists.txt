@@ -24,7 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenMP REQUIRED)
 find_package(PCL REQUIRED QUIET)
 find_package(OpenCV REQUIRED QUIET)
-find_package(GTSAM REQUIRED QUIET)
+find_package(GTSAM REQUIRED QUIET HINTS ~/work/LTAOM_ws/devel)
+find_package(TBB REQUIRED HINTS ~/work/LTAOM_ws/devel)
 
 add_message_files(
   DIRECTORY msg
@@ -78,11 +79,13 @@ link_directories(
 add_executable(${PROJECT_NAME}_imageProjection src/imageProjection.cpp)
 add_dependencies(${PROJECT_NAME}_imageProjection ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_imageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_imageProjection PRIVATE TBB::tbb)
 
 # Feature Association
 add_executable(${PROJECT_NAME}_featureExtraction src/featureExtraction.cpp)
 add_dependencies(${PROJECT_NAME}_featureExtraction ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_featureExtraction ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_featureExtraction PRIVATE TBB::tbb)
 
 # Mapping Optimization
 add_executable(${PROJECT_NAME}_mapOptmization 
@@ -92,7 +95,9 @@ add_executable(${PROJECT_NAME}_mapOptmization
 add_dependencies(${PROJECT_NAME}_mapOptmization ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_compile_options(${PROJECT_NAME}_mapOptmization PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(${PROJECT_NAME}_mapOptmization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${OpenMP_CXX_FLAGS} gtsam)
+target_link_libraries(${PROJECT_NAME}_mapOptmization PRIVATE TBB::tbb)
 
 # IMU Preintegration
 add_executable(${PROJECT_NAME}_imuPreintegration src/imuPreintegration.cpp)
 target_link_libraries(${PROJECT_NAME}_imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam)
+target_link_libraries(${PROJECT_NAME}_imuPreintegration PRIVATE TBB::tbb)
