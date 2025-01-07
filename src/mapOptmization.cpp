@@ -19,6 +19,8 @@
 #include <gtsam/nonlinear/ISAM2.h>
 
 #include "Scancontext.h"
+#include "common_lib.hpp"
+#include "predefined_types.h"
 
 
 using namespace gtsam;
@@ -263,6 +265,9 @@ public:
         pubRecentKeyFrames    = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/map_local", 1);
         pubRecentKeyFrame     = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/cloud_registered", 1);
         pubCloudRegisteredRaw = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/cloud_registered_raw", 1);
+
+
+
 
         const float kSCFilterSize = 0.5; // giseop
         downSizeFilterSC.setLeafSize(kSCFilterSize, kSCFilterSize, kSCFilterSize); // giseop
@@ -655,6 +660,97 @@ public:
             loopInfoVec.pop_front();
     }
 
+
+
+    float calculateOverlapScore(const pcl::PointCloud<PointType>::Ptr& currKeyframeCloud, const pcl::PointCloud<PointType>::Ptr& targetKeyframeCloud,
+                                const Eigen::Matrix4f& T_cur, const Eigen::Matrix4f& T_prev, const Eigen::Matrix4f& guess,
+                                const float &voxel_box_size, const int &num_pt_max, const int pre_idx, const int cur_idx)
+    {
+        pcl::PointCloud<PointType>::Ptr currKeyframeCloud_ds(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr targetKeyframeCloud_ds(new pcl::PointCloud<PointType>());
+
+        std::cout  << "目标关键帧点云大小 " << targetKeyframeCloud->points.size() << std::endl;
+        std::cout << "当前关键帧点云大小" << currKeyframeCloud->points.size() << std::endl;
+
+        pcl::VoxelGrid<PointType> sor;
+        sor.setInputCloud(currKeyframeCloud);
+        sor.setLeafSize(0.25, 0.25, 0.25);
+        sor.filter(*currKeyframeCloud_ds);
+
+        sor.setInputCloud(targetKeyframeCloud);
+        sor.setLeafSize(0.25, 0.25, 0.25);
+        sor.filter(*targetKeyframeCloud_ds);
+
+        std::cout  << "下采样目标关键帧点云大小 " << targetKeyframeCloud_ds->points.size() << std::endl;
+        std::cout << "下采样当前关键帧点云大小" << currKeyframeCloud_ds->points.size() << std::endl;
+
+
+
+        int num_pt_cur = int(currKeyframeCloud_ds->size());
+        std::vector<int> indices;
+        int sample_gap;
+        if (num_pt_cur > 2*num_pt_max)
+            sample_gap = ceil(double(num_pt_cur)/double(num_pt_max));
+        else
+            sample_gap = 1;
+        for (int i = 0; i < num_pt_cur; i+=sample_gap)  // downsample
+        {
+            indices.push_back(i);
+        }
+
+
+        int num_pt_target = int(targetKeyframeCloud_ds->size());
+        float cloud_size_ratio = std::min(float(num_pt_cur) / float(num_pt_target), float(num_pt_target) / float(num_pt_cur));
+        std::cout << "[FPR]: submap pair's pt numbers ratio: " << cloud_size_ratio << std::endl;
+
+        pcl::PointCloud<PointType>::Ptr cloud_in_transed (new pcl::PointCloud<PointType>);
+        pcl::transformPointCloud(*currKeyframeCloud_ds, indices, *cloud_in_transed, T_prev*guess*T_cur.inverse(), false);
+
+        std::unordered_map<VOXEL_LOC, int> uomp_3d;
+        CutVoxel3d(uomp_3d, targetKeyframeCloud_ds, voxel_box_size);  // cut voxel for counting hit
+
+        int count1 = 0;
+        int count2 = 0;
+        for (int i = 0; i < cloud_in_transed->size(); i++)
+        {
+            auto &a_pt = cloud_in_transed->points[i];
+            Eigen::Vector3f pt(a_pt.x, a_pt.y, a_pt.z);
+            float loc_xyz[3];
+            for(int j = 0; j < 3; j++)
+            {
+                loc_xyz[j] = pt[j] / voxel_box_size;
+                if(loc_xyz[j] < 0)
+                {
+                    loc_xyz[j] -= 1.0;
+                }
+            }
+            VOXEL_LOC position((int64_t)loc_xyz[0], (int64_t)loc_xyz[1], (int64_t)loc_xyz[2]);
+            auto iter = uomp_3d.find(position);
+            if(iter != uomp_3d.end())
+            {
+                if (iter->second == 0)
+                    count1++;
+                iter->second++;
+                count2++;
+            }
+        }
+
+
+        float score = (float(count2)/float(cloud_in_transed->size()))*cloud_size_ratio;
+//  float score = float(count2)/float(cloud_in_transed->size())<float(count1)/float(uomp_3d.size())?float(count2)/float(cloud_in_transed->size()):float(count1)/float(uomp_3d.size());
+        if (score > overlap_score_thr)
+        {
+            bool is_plane = CheckIfJustPlane(cloud_in_transed, plane_inliner_ratio_thr);
+            if (is_plane)
+            {
+                std::cout <<  "[FPR]: 拒绝, 目标点云像一个平面" << std::endl;
+                return 0.0f;
+            }
+        }
+
+        return score;
+    }
+
     void performRSLoopClosure()
     {
         if (cloudKeyPoses3D->points.empty() == true)
@@ -670,6 +766,7 @@ public:
         // find keys
         int loopKeyCur;
         int loopKeyPre;
+        // 找到空间位置最近的几帧关键帧，时间距离最长的优先
         if (detectLoopClosureExternal(&loopKeyCur, &loopKeyPre) == false)
             if (detectLoopClosureDistance(&loopKeyCur, &loopKeyPre) == false)
                 return;

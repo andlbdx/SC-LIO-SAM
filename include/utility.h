@@ -148,6 +148,7 @@ public:
     int   surroundingKeyframeSize;
     float historyKeyframeSearchRadius;
     float historyKeyframeSearchTimeDiff;
+    // 默认值为25
     int   historyKeyframeSearchNum;
     float historyKeyframeFitnessScore;
 
@@ -155,6 +156,9 @@ public:
     float globalMapVisualizationSearchRadius;
     float globalMapVisualizationPoseDensity;
     float globalMapVisualizationLeafSize;
+
+    float overlap_score_thr;
+    float plane_inliner_ratio_thr;
 
     ParamServer()
     {
@@ -177,6 +181,9 @@ public:
 
         nh.param<bool>("lio_sam/savePCD", savePCD, false);
         nh.param<std::string>("lio_sam/savePCDDirectory", savePCDDirectory, "/Downloads/LOAM/");
+
+        nh.param<float>("lio_sam/OverlapScoreThr", overlap_score_thr, 0.5);
+        nh.param<float>("lio_sam/PlaneInlinerRatioThr", plane_inliner_ratio_thr, 0.5);
 
         std::string sensorStr;
         nh.param<std::string>("lio_sam/sensor", sensorStr, "");

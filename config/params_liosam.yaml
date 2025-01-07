@@ -92,6 +92,9 @@ lio_sam:
   globalMapVisualizationSearchRadius: 1000.0    # meters, global map visualization radius
   globalMapVisualizationPoseDensity: 10.0       # meters, global map visualization keyframe density
   globalMapVisualizationLeafSize: 0.2           # meters, global map visualization cloud density
+  
+  OverlapScoreThr: 0.15
+  PlaneInlinerRatioThr: 0.4
 
 
 
