@@ -664,7 +664,7 @@ public:
 
     float calculateOverlapScore(const pcl::PointCloud<PointType>::Ptr& currKeyframeCloud, const pcl::PointCloud<PointType>::Ptr& targetKeyframeCloud,
                                 const Eigen::Matrix4f& T_cur, const Eigen::Matrix4f& T_prev, const Eigen::Matrix4f& guess,
-                                const float &voxel_box_size, const int &num_pt_max, const int pre_idx, const int cur_idx)
+                                const float &voxel_box_size, const int &num_pt_max)
     {
         pcl::PointCloud<PointType>::Ptr currKeyframeCloud_ds(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr targetKeyframeCloud_ds(new pcl::PointCloud<PointType>());
