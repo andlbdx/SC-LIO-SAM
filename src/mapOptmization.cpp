@@ -239,6 +239,9 @@ public:
     std::string saveSCDDirectory;
     std::string saveNodePCDDirectory;
 
+    int num_loop_cloud = 0;
+
+
 public:
 
     mapOptimization()
@@ -669,9 +672,6 @@ public:
         pcl::PointCloud<PointType>::Ptr currKeyframeCloud_ds(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr targetKeyframeCloud_ds(new pcl::PointCloud<PointType>());
 
-        std::cout  << "目标关键帧点云大小 " << targetKeyframeCloud->points.size() << std::endl;
-        std::cout << "当前关键帧点云大小" << currKeyframeCloud->points.size() << std::endl;
-
         pcl::VoxelGrid<PointType> sor;
         sor.setInputCloud(currKeyframeCloud);
         sor.setLeafSize(0.25, 0.25, 0.25);
@@ -806,6 +806,14 @@ public:
             std::cout << "ICP fitness test passed (" << icp.getFitnessScore() << " < " << historyKeyframeFitnessScore << "). Add this RS loop." << std::endl;
         }
 
+        float overlap_score = calculateOverlapScore(cureKeyframeCloud, prevKeyframeCloud, Eigen::Matrix4f::Identity(),
+                              Eigen::Matrix4f::Identity(), icp.getFinalTransformation(), 2.0, 150000);
+
+        if(overlap_score < overlap_score_thr){
+            ROS_WARN("[FPR] score is low :%lf",overlap_score);
+            return ;
+        }
+
         // publish corrected cloud
         if (pubIcpKeyFrames.getNumSubscribers() != 0)
         {
@@ -896,6 +904,14 @@ public:
             return;
         } else {
             std::cout << "ICP fitness test passed (" << icp.getFitnessScore() << " < " << historyKeyframeFitnessScore << "). Add this SC loop." << std::endl;
+        }
+
+        float overlap_score = calculateOverlapScore(cureKeyframeCloud, prevKeyframeCloud, Eigen::Matrix4f::Identity(),
+                                                    Eigen::Matrix4f::Identity(), icp.getFinalTransformation(), 2.0, 150000);
+
+        if(overlap_score < overlap_score_thr){
+            ROS_WARN("[FPR] score is low :%lf",overlap_score);
+            return ;
         }
 
         // publish corrected cloud
@@ -1077,6 +1093,7 @@ public:
         // extract near keyframes
         nearKeyframes->clear();
         int cloudSize = copy_cloudKeyPoses6D->size();
+        // 寻找关键帧的近邻关键帧
         for (int i = -searchNum; i <= searchNum; ++i)
         {
             int keyNear = key + i;
@@ -2227,6 +2244,7 @@ public:
 
 int main(int argc, char** argv)
 {
+    setlocale(LC_CTYPE, "zh_CN.utf8");
     ros::init(argc, argv, "lio_sam");
 
     mapOptimization MO;

@@ -1,13 +1,13 @@
 #include "utility.h"
 #include "lio_sam/cloud_info.h"
 
-struct smoothness_t{ 
+struct smoothness_t{
     float value;
     size_t ind;
 };
 
-struct by_value{ 
-    bool operator()(smoothness_t const &left, smoothness_t const &right) { 
+struct by_value{
+    bool operator()(smoothness_t const &left, smoothness_t const &right) {
         return left.value < right.value;
     }
 };
@@ -44,7 +44,7 @@ public:
         pubLaserCloudInfo = nh.advertise<lio_sam::cloud_info> ("lio_sam/feature/cloud_info", 1);
         pubCornerPoints = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/feature/cloud_corner", 1);
         pubSurfacePoints = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/feature/cloud_surface", 1);
-        
+
         initializationValue();
     }
 
@@ -84,11 +84,11 @@ public:
         for (int i = 5; i < cloudSize - 5; i++)
         {
             float diffRange = cloudInfo.pointRange[i-5] + cloudInfo.pointRange[i-4]
-                            + cloudInfo.pointRange[i-3] + cloudInfo.pointRange[i-2]
-                            + cloudInfo.pointRange[i-1] - cloudInfo.pointRange[i] * 10
-                            + cloudInfo.pointRange[i+1] + cloudInfo.pointRange[i+2]
-                            + cloudInfo.pointRange[i+3] + cloudInfo.pointRange[i+4]
-                            + cloudInfo.pointRange[i+5];            
+                              + cloudInfo.pointRange[i-3] + cloudInfo.pointRange[i-2]
+                              + cloudInfo.pointRange[i-1] - cloudInfo.pointRange[i] * 10
+                              + cloudInfo.pointRange[i+1] + cloudInfo.pointRange[i+2]
+                              + cloudInfo.pointRange[i+3] + cloudInfo.pointRange[i+4]
+                              + cloudInfo.pointRange[i+5];
 
             cloudCurvature[i] = diffRange*diffRange;//diffX * diffX + diffY * diffY + diffZ * diffZ;
 
@@ -265,7 +265,7 @@ int main(int argc, char** argv)
     FeatureExtraction FE;
 
     ROS_INFO("\033[1;32m----> Feature Extraction Started.\033[0m");
-   
+
     ros::spin();
 
     return 0;

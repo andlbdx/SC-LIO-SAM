@@ -88,7 +88,7 @@ gtsam::Pose3 Pose6DToGTSPose(const Pose6D& p)
 void Pose6DToEigenRT(const Pose6D& p, gtsam::Matrix3 &R, gtsam::Vector3 &t)
 {
   R = gtsam::Rot3::RzRyRx(p.roll, p.pitch, p.yaw).matrix();
-  t = gtsam::Point3(p.x, p.y, p.z).vector();
+  t = gtsam::Vector3(p.x, p.y, p.z);
 }
 Eigen::Matrix4f GeoPoseMsgToEigenM4f(const geometry_msgs::PoseWithCovarianceConstPtr& lc_msg){
   auto x = lc_msg->pose.position.x;
